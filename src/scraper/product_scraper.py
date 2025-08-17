@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
-import requests
-from bs4 import BeautifulSoup
+import requests  # type: ignore[import-untyped]
+from bs4 import BeautifulSoup, Tag
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
@@ -37,17 +37,18 @@ def clean_text(text: str) -> str:
 
 
 def extract_images(soup: BeautifulSoup, base_url: str) -> List[str]:
-    imgs = []
-    for img in soup.select('img'):
-        src = img.get('data-src') or img.get('src')
-        if not src:
+    imgs: List[str] = []
+    for img in soup.select("img"):
+        src_attr = img.get("data-src") or img.get("src")
+        if not isinstance(src_attr, str):
             continue
-        if src.startswith('//'):
-            src = 'https:' + src
-        if src.startswith('/') and base_url:
+        src = src_attr
+        if src.startswith("//"):
+            src = "https:" + src
+        if src.startswith("/") and base_url:
             # naive join
-            src = base_url.rstrip('/') + src
-        if any(ext for ext in ['.jpg', '.jpeg', '.png', '.webp'] if ext in src.lower()):
+            src = base_url.rstrip("/") + src
+        if any(ext for ext in [".jpg", ".jpeg", ".png", ".webp"] if ext in src.lower()):
             if src not in imgs:
                 imgs.append(src)
     return imgs[:12]  # limit for MVP
@@ -56,11 +57,15 @@ def extract_images(soup: BeautifulSoup, base_url: str) -> List[str]:
 def extract_price(soup: BeautifulSoup) -> Optional[str]:
     price_candidates = soup.find_all(string=re.compile(r"\$\s?\d"))
     if price_candidates:
-        return clean_text(price_candidates[0])
+        return clean_text(str(price_candidates[0]))
     # meta tags
-    meta_price = soup.find('meta', property='product:price:amount') or soup.find('meta', itemprop='price')
-    if meta_price and meta_price.get('content'):
-        return meta_price['content']
+    meta_price = soup.find("meta", property="product:price:amount") or soup.find(
+        "meta", itemprop="price"
+    )
+    if isinstance(meta_price, Tag):
+        content = meta_price.get("content")
+        if isinstance(content, str):
+            return content
     return None
 
 
@@ -108,8 +113,9 @@ def extract_title(soup: BeautifulSoup) -> str:
 
 def scrape_product(url: str) -> ProductData:
     html = fetch_html(url)
-    soup = BeautifulSoup(html, 'lxml')
-    base_url = re.match(r"https?://[^/]+", url).group(0) if re.match(r"https?://[^/]+", url) else ''
+    soup = BeautifulSoup(html, "lxml")
+    match = re.match(r"https?://[^/]+", url)
+    base_url = match.group(0) if match else ""
 
     title = extract_title(soup)
     price = extract_price(soup)

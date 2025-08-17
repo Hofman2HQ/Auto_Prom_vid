@@ -8,7 +8,7 @@ Manual product video production is slow & costly. Goal: fully automated pipeline
 ## MVP Capabilities (Current)
 1. Scrape product page (title, price, description, specs, images)
 2. Generate marketing script (mock copy or optional OpenAI if API key present)
-3. Text‑to‑speech voiceover (Edge TTS voice if library installed; otherwise placeholder bytes)
+3. Text‑to‑speech voiceover (Edge TTS voice or gTTS fallback for real audio)
 4. Assemble slideshow video (MoviePy) with gentle zoom (Ken Burns style) and synchronized duration
 
 ## High‑Level Architecture
@@ -22,7 +22,7 @@ Manual product video production is slow & costly. Goal: fully automated pipeline
  [Script Generator] (LLM / mock) ──> marketing script
    │
    ▼
- [TTS] Edge TTS / fallback ──> voice.mp3
+ [TTS] Edge TTS / gTTS fallback ──> voice.mp3
    │
    ▼
  [Video Assembler] (MoviePy slideshow + zoom) ──> promo.mp4
@@ -33,7 +33,7 @@ Manual product video production is slow & costly. Goal: fully automated pipeline
 src/
   scraper/          # Web scraping logic -> ProductData dataclasses
   scriptgen/        # Prompt construction + LLM (OpenAI) integration fallback to mock
-  tts/              # Text‑to‑speech abstraction (Edge TTS)
+  tts/              # Text‑to‑speech abstraction (Edge TTS with gTTS fallback)
   video/            # Video assembly (image DL + MoviePy slideshow)
   pipeline.py       # Orchestrates full end‑to‑end generation + CLI main
 tests/              # Basic placeholder tests
@@ -42,7 +42,7 @@ tests/              # Basic placeholder tests
 ## Prerequisites
 - Python 3.10+
 - FFmpeg (required by MoviePy). On Windows install via e.g. winget or choco and ensure `ffmpeg` is in PATH.
-- (Optional) Microsoft Edge TTS dependency auto‑installed (`edge-tts`) for real voices.
+- (Optional) Microsoft Edge TTS dependency auto‑installed (`edge-tts`) for high quality voices. `gTTS` is bundled as a fallback.
 - (Optional) OpenAI API key for real script generation.
 
 ## Installation & Quick Start
@@ -89,7 +89,7 @@ You may place them in a `.env` file (python-dotenv installed) if you later add l
 ## Cost Considerations (Planned)
 - Scraping: negligible
 - LLM: ~ $0.002–0.01 per script (model dependent) or $0 (mock)
-- TTS: Edge voices are free (usage limits apply) or alternative TTS service cost
+- TTS: Edge voices are free (usage limits apply); gTTS fallback is free but requires internet access
 - Video assembly: local CPU only
 
 Planned cost logging: track cumulative API + compute seconds per video.
@@ -114,6 +114,12 @@ mypy src           # type checking
 - Image selection naive (takes up to first 12 images)
 - No caching of downloaded images (re-fetches each run)
 - Mock script output unless OpenAI key provided
+
+## Areas Requiring Manual Intervention
+- Verify scraping selectors for target e-commerce domains and add robots.txt compliance before wide deployment.
+- Supply an `OPENAI_API_KEY` for production-grade script generation.
+- Install `edge-tts` on production machines for higher quality voices; otherwise gTTS is used.
+- Provide branding assets (logos, fonts, colours) if videos should be themed.
 
 ## Roadmap (Next / Later)
 Short Term:
