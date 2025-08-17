@@ -25,6 +25,7 @@ dependencies = [
   "openai>=1.0.0",
   "moviepy",
   "Pillow",
+  "gTTS",
   "edge-tts; platform_system == 'Windows'",
   "tqdm"
 ]
