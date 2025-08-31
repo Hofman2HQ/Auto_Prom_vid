@@ -6,7 +6,6 @@ from scriptgen.script_generator import generate_script
 from tts.tts_engine import synthesize_tts
 from video.video_assembler import build_slideshow
 import argparse
-import os
 
 
 def generate_video_from_url(url: str, workdir: str = "output", use_mock_llm: bool = True) -> str:

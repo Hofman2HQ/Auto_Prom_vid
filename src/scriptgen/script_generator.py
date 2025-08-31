@@ -40,9 +40,24 @@ def build_prompt(product: Dict) -> str:
     )
 
 
-def mock_llm_generate(prompt: str) -> str:
-    # Simple deterministic placeholder (helps tests)
-    return "Discover the product's standout features today. Visit the link to learn more."  # noqa: E501
+def mock_llm_generate(product: Dict) -> str:
+    """Fallback script generation without external LLM calls.
+
+    Creates a basic marketing message using available product fields so tests
+    and offline usage still yield meaningful output.
+    """
+
+    title = product.get("title", "this product")
+    price = product.get("price")
+    price_line = f"Priced at {price}, " if price else ""
+    description = product.get("description", "")
+    first_spec = next(iter(product.get("specs", {}).items()), None)
+    spec_line = f"It features {first_spec[0]} {first_spec[1]}. " if first_spec else ""
+
+    return (
+        f"Introducing {title}! {price_line}{spec_line}{description[:80]} "
+        "Visit the link to learn more."
+    )
 
 
 def generate_script(product: Dict, use_mock: bool = True) -> str:
@@ -53,11 +68,11 @@ def generate_script(product: Dict, use_mock: bool = True) -> str:
     """
     prompt = build_prompt(product)
     if use_mock:
-        return mock_llm_generate(prompt)
+        return mock_llm_generate(product)
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key or OpenAI is None:
-        return mock_llm_generate(prompt)
+        return mock_llm_generate(product)
     try:
         client = OpenAI()
         model = os.getenv("PROMPT_MODEL", "gpt-4o-mini")
@@ -72,10 +87,10 @@ def generate_script(product: Dict, use_mock: bool = True) -> str:
         )
         text = resp.choices[0].message.content if resp.choices else None  # type: ignore
         if not text:
-            return mock_llm_generate(prompt)
+            return mock_llm_generate(product)
         return text.strip()
     except Exception:
-        return mock_llm_generate(prompt)
+        return mock_llm_generate(product)
 
 if __name__ == "__main__":
     sample = {"title": "Sample Car", "price":"$19,995", "specs": {"Engine":"V6"}, "description":"A reliable vehicle."}
